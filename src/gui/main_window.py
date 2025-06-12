@@ -7,6 +7,10 @@ from tkinter import ttk, scrolledtext
 import threading
 from datetime import datetime
 
+# Importy dla TTS i Dialog Manager
+from speech.synthesis import get_tts
+from dialog.manager import DialogManager
+
 
 class MathTutorApp:
     def __init__(self, root):
@@ -17,6 +21,10 @@ class MathTutorApp:
         # Zmienne stanu
         self.is_listening = False
         self.current_state = "idle"  # idle, listening, processing, speaking
+        
+        # Inicjalizacja TTS i Dialog Manager
+        self.tts = get_tts()
+        self.dialog_manager = DialogManager(self.on_system_message)
         
         self.setup_ui()
         self.update_status("System gotowy do pracy")
@@ -97,6 +105,21 @@ class MathTutorApp:
         )
         level_combo.grid(row=0, column=3, padx=5)
         
+        # === TYMCZASOWE - Pole do testowania ===
+        test_frame = ttk.Frame(control_frame)
+        test_frame.grid(row=1, column=0, columnspan=5, pady=10)
+        
+        ttk.Label(test_frame, text="Test input:").grid(row=0, column=0, padx=5)
+        self.test_entry = ttk.Entry(test_frame, width=40)
+        self.test_entry.grid(row=0, column=1, padx=5)
+        self.test_entry.bind('<Return>', lambda e: self.on_test_input())
+        
+        ttk.Button(
+            test_frame,
+            text="Wyślij",
+            command=self.on_test_input
+        ).grid(row=0, column=2, padx=5)
+        
         # === PASEK STATUSU ===
         self.status_var = tk.StringVar()
         status_bar = ttk.Label(
@@ -133,7 +156,9 @@ class MathTutorApp:
         self.start_button.config(text="⏸ Stop", style="Stop.TButton")
         self.activity_label.config(text="🔴", foreground="red")
         self.update_status("Nasłuchiwanie aktywne...")
-        self.add_message("System", "Słucham... Zadaj pytanie z matematyki!")
+        
+        # Rozpocznij dialog
+        self.dialog_manager.start_dialog()
         
     def stop_listening(self):
         """Zatrzymuje nasłuchiwanie"""
@@ -173,3 +198,21 @@ class MathTutorApp:
     def update_status(self, message):
         """Aktualizuje pasek statusu"""
         self.status_var.set(f"Status: {message}")
+        
+    def on_system_message(self, message):
+        """Callback wywoływany gdy system generuje wiadomość"""
+        self.add_message("System", message)
+        # Wypowiedz wiadomość
+        self.tts.speak(message)
+        
+    def simulate_user_input(self, text):
+        """Symuluje input użytkownika (do testów)"""
+        if text.strip():  # Tylko jeśli tekst nie jest pusty
+            self.add_message("Użytkownik", text)
+            response = self.dialog_manager.process_user_input(text)
+            self.test_entry.delete(0, tk.END)  # Wyczyść pole
+            
+    def on_test_input(self):
+        """Obsługuje input z pola testowego"""
+        text = self.test_entry.get()
+        self.simulate_user_input(text)
