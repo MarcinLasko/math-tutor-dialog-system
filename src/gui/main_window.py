@@ -1,0 +1,175 @@
+"""
+Główne okno aplikacji korepetytora matematycznego
+"""
+
+import tkinter as tk
+from tkinter import ttk, scrolledtext
+import threading
+from datetime import datetime
+
+
+class MathTutorApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Korepetytor Matematyczny - System Dialogowy")
+        self.root.geometry("800x600")
+        
+        # Zmienne stanu
+        self.is_listening = False
+        self.current_state = "idle"  # idle, listening, processing, speaking
+        
+        self.setup_ui()
+        self.update_status("System gotowy do pracy")
+        
+    def setup_ui(self):
+        """Konfiguracja interfejsu użytkownika"""
+        # Główny kontener
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Konfiguracja wag dla responsywności
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=1)
+        main_frame.rowconfigure(1, weight=1)
+        
+        # === GÓRNA SEKCJA - Nagłówek ===
+        header_frame = ttk.Frame(main_frame)
+        header_frame.grid(row=0, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
+        
+        ttk.Label(
+            header_frame, 
+            text="🎓 Korepetytor Matematyczny", 
+            font=('Arial', 16, 'bold')
+        ).pack()
+        
+        # === ŚRODKOWA SEKCJA - Obszar dialogu ===
+        # Ramka dla historii rozmowy
+        dialog_frame = ttk.LabelFrame(main_frame, text="Historia rozmowy", padding="5")
+        dialog_frame.grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
+        
+        # Obszar tekstowy z przewijaniem
+        self.dialog_area = scrolledtext.ScrolledText(
+            dialog_frame,
+            wrap=tk.WORD,
+            width=70,
+            height=20,
+            font=('Arial', 10)
+        )
+        self.dialog_area.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        dialog_frame.columnconfigure(0, weight=1)
+        dialog_frame.rowconfigure(0, weight=1)
+        
+        # Tagi dla różnych typów wiadomości
+        self.dialog_area.tag_config("user", foreground="blue")
+        self.dialog_area.tag_config("system", foreground="green")
+        self.dialog_area.tag_config("error", foreground="red")
+        
+        # === DOLNA SEKCJA - Kontrolki ===
+        control_frame = ttk.Frame(main_frame)
+        control_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
+        
+        # Przyciski
+        self.start_button = ttk.Button(
+            control_frame,
+            text="▶ Start",
+            command=self.toggle_listening,
+            style="Start.TButton"
+        )
+        self.start_button.grid(row=0, column=0, padx=5)
+        
+        self.clear_button = ttk.Button(
+            control_frame,
+            text="🗑 Wyczyść",
+            command=self.clear_dialog
+        )
+        self.clear_button.grid(row=0, column=1, padx=5)
+        
+        # Wybór poziomu
+        ttk.Label(control_frame, text="Poziom:").grid(row=0, column=2, padx=(20, 5))
+        self.level_var = tk.StringVar(value="klasa_7")
+        level_combo = ttk.Combobox(
+            control_frame,
+            textvariable=self.level_var,
+            values=["klasa_4", "klasa_5", "klasa_6", "klasa_7", "klasa_8", "liceum", "matura"],
+            state="readonly",
+            width=15
+        )
+        level_combo.grid(row=0, column=3, padx=5)
+        
+        # === PASEK STATUSU ===
+        self.status_var = tk.StringVar()
+        status_bar = ttk.Label(
+            main_frame,
+            textvariable=self.status_var,
+            relief=tk.SUNKEN,
+            anchor=tk.W
+        )
+        status_bar.grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(5, 0))
+        
+        # Wskaźnik aktywności
+        self.activity_label = ttk.Label(control_frame, text="⭕", font=('Arial', 20))
+        self.activity_label.grid(row=0, column=4, padx=20)
+        
+        # Style
+        self.setup_styles()
+        
+    def setup_styles(self):
+        """Konfiguracja stylów dla przycisków"""
+        style = ttk.Style()
+        style.configure("Start.TButton", foreground="green")
+        style.configure("Stop.TButton", foreground="red")
+        
+    def toggle_listening(self):
+        """Przełącza stan nasłuchiwania"""
+        if not self.is_listening:
+            self.start_listening()
+        else:
+            self.stop_listening()
+            
+    def start_listening(self):
+        """Rozpoczyna nasłuchiwanie"""
+        self.is_listening = True
+        self.start_button.config(text="⏸ Stop", style="Stop.TButton")
+        self.activity_label.config(text="🔴", foreground="red")
+        self.update_status("Nasłuchiwanie aktywne...")
+        self.add_message("System", "Słucham... Zadaj pytanie z matematyki!")
+        
+    def stop_listening(self):
+        """Zatrzymuje nasłuchiwanie"""
+        self.is_listening = False
+        self.start_button.config(text="▶ Start", style="Start.TButton")
+        self.activity_label.config(text="⭕")
+        self.update_status("Nasłuchiwanie zatrzymane")
+        self.add_message("System", "Nasłuchiwanie zatrzymane.")
+        
+    def add_message(self, sender, message):
+        """Dodaje wiadomość do obszaru dialogu"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        self.dialog_area.config(state=tk.NORMAL)
+        
+        # Dodaj timestamp
+        self.dialog_area.insert(tk.END, f"[{timestamp}] ", "timestamp")
+        
+        # Dodaj nadawcę i wiadomość
+        if sender == "Użytkownik":
+            self.dialog_area.insert(tk.END, f"{sender}: {message}\n", "user")
+        elif sender == "System":
+            self.dialog_area.insert(tk.END, f"{sender}: {message}\n", "system")
+        else:
+            self.dialog_area.insert(tk.END, f"{sender}: {message}\n")
+            
+        self.dialog_area.config(state=tk.DISABLED)
+        self.dialog_area.see(tk.END)  # Przewiń do końca
+        
+    def clear_dialog(self):
+        """Czyści obszar dialogu"""
+        self.dialog_area.config(state=tk.NORMAL)
+        self.dialog_area.delete(1.0, tk.END)
+        self.dialog_area.config(state=tk.DISABLED)
+        self.update_status("Historia wyczyszczona")
+        
+    def update_status(self, message):
+        """Aktualizuje pasek statusu"""
+        self.status_var.set(f"Status: {message}")
