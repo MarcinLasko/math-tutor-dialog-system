@@ -1,0 +1,13 @@
+# Speech Recognition
+vosk==0.3.45
+pyaudio==0.2.13
+sounddevice==0.4.6
+
+# Text to Speech
+pyttsx3==2.90
+
+# GUI
+tkinter  # Jest wbudowany w Python, nie trzeba instalować
+
+# Utilities
+numpy==1.24.3
