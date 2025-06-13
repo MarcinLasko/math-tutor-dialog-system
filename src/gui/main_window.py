@@ -10,7 +10,7 @@ from datetime import datetime
 # Importy dla TTS i Dialog Manager
 from speech.synthesis import get_tts
 from dialog.manager import DialogManager
-
+from speech.recognition import SpeechRecognizer, test_microphone
 
 class MathTutorApp:
     def __init__(self, root):
@@ -25,7 +25,17 @@ class MathTutorApp:
         # Inicjalizacja TTS i Dialog Manager
         self.tts = get_tts()
         self.dialog_manager = DialogManager(self.on_system_message)
-        
+
+        # Inicjalizacja rozpoznawania mowy
+        self.speech_recognizer = SpeechRecognizer(
+            on_result=self.on_speech_result,
+            on_partial=self.on_speech_partial
+        )
+
+        # Test mikrofonu przy starcie
+        if not test_microphone():
+            self.add_message("System", "⚠️ Uwaga: Nie wykryto mikrofonu lub wystąpił problem z audio!")
+                
         self.setup_ui()
         self.update_status("System gotowy do pracy")
         
@@ -155,16 +165,25 @@ class MathTutorApp:
         self.is_listening = True
         self.start_button.config(text="⏸ Stop", style="Stop.TButton")
         self.activity_label.config(text="🔴", foreground="red")
-        self.update_status("Nasłuchiwanie aktywne...")
         
-        # Rozpocznij dialog
-        self.dialog_manager.start_dialog()
+        # Rozpocznij rozpoznawanie mowy
+        if self.speech_recognizer.start_listening():
+            self.update_status("Nasłuchiwanie aktywne... Mów do mikrofonu!")
+            # Rozpocznij dialog
+            self.dialog_manager.start_dialog()
+        else:
+            self.update_status("Błąd uruchamiania rozpoznawania mowy!")
+            self.stop_listening()
         
     def stop_listening(self):
         """Zatrzymuje nasłuchiwanie"""
         self.is_listening = False
         self.start_button.config(text="▶ Start", style="Start.TButton")
         self.activity_label.config(text="⭕")
+        
+        # Zatrzymaj rozpoznawanie mowy
+        self.speech_recognizer.stop_listening()
+        
         self.update_status("Nasłuchiwanie zatrzymane")
         self.add_message("System", "Nasłuchiwanie zatrzymane.")
         
@@ -216,3 +235,16 @@ class MathTutorApp:
         """Obsługuje input z pola testowego"""
         text = self.test_entry.get()
         self.simulate_user_input(text)
+
+    def on_speech_result(self, text):
+        """Callback gdy rozpoznano pełną wypowiedź"""
+        if text and self.is_listening:
+            self.add_message("Użytkownik", text)
+            # Przetwórz przez dialog manager
+            response = self.dialog_manager.process_user_input(text)
+            
+    def on_speech_partial(self, text):
+        """Callback dla częściowych wyników (opcjonalny)"""
+        # Możemy pokazać w statusie co aktualnie słyszymy
+        if text:
+            self.update_status(f"Słyszę: {text}...")
