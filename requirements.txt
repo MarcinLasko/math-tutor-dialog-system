@@ -11,3 +11,4 @@ tkinter  # Jest wbudowany w Python, nie trzeba instalować
 
 # Utilities
 numpy==1.24.3
+reportlab

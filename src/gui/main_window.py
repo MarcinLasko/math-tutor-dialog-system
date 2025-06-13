@@ -146,6 +146,28 @@ class MathTutorApp:
         
         # Style
         self.setup_styles()
+
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+
+        # Menu Plik
+        # file_menu = tk.Menu(menubar, tearoff=0)
+        # menubar.add_cascade(label="Plik", menu=file_menu)
+        # file_menu.add_command(label="Eksportuj raport PDF", command=self.export_report)
+        # file_menu.add_separator()
+        # file_menu.add_command(label="Zakończ", command=self.root.quit)
+
+        # # Menu Widok
+        # view_menu = tk.Menu(menubar, tearoff=0)
+        # menubar.add_cascade(label="Widok", menu=view_menu)
+        # view_menu.add_command(label="Pokaż statystyki", command=self.show_statistics)
+        # view_menu.add_command(label="Historia sesji", command=self.show_history)
+
+        # # Menu Ustawienia
+        # settings_menu = tk.Menu(menubar, tearoff=0)
+        # menubar.add_cascade(label="Ustawienia", menu=settings_menu)
+        # settings_menu.add_checkbutton(label="Tryb adaptacyjny", variable=self.adaptive_mode)
+        # settings_menu.add_command(label="Zmień głos", command=self.change_voice)
         
     def setup_styles(self):
         """Konfiguracja stylów dla przycisków"""
