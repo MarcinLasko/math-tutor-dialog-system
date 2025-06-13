@@ -3,11 +3,81 @@ Manager dialogu - zarządza przepływem konwersacji
 """
 
 import logging
+import random
 from enum import Enum
 from typing import Callable, Optional
-import random
 
 logger = logging.getLogger(__name__)
+
+
+def convert_speech_to_math(text):
+    """Konwertuje wypowiedziane słowa na format matematyczny"""
+    # Konwertuj na małe litery
+    result = text.lower().strip()
+    
+    # Debug
+    print(f"[DEBUG] Konwersja: '{result}'")
+    
+    # NAJPIERW sprawdź całe frazy (ułamki)
+    fraction_phrases = {
+        # Ułamki - całe frazy muszą być PIERWSZE
+        'jedna druga': '1/2',
+        'jedna trzecia': '1/3', 
+        'dwie trzecie': '2/3',
+        'jedna czwarta': '1/4',
+        'trzy czwarte': '3/4',
+        'jedna piąta': '1/5',
+        'dwie piąte': '2/5',
+        'jedna szósta': '1/6',
+        'pięć szóstych': '5/6',
+        'połowa': '1/2',
+        'pół': '1/2',
+        'ćwierć': '1/4',
+    }
+    
+    # Zamień całe frazy na ułamki
+    for phrase, fraction in fraction_phrases.items():
+        if phrase in result:
+            result = result.replace(phrase, fraction)
+            print(f"[DEBUG] Zamieniono frazę '{phrase}' na '{fraction}'")
+    
+    # DOPIERO POTEM zamień pojedyncze słowa
+    word_to_number = {
+        # Liczby podstawowe
+        'zero': '0', 'jeden': '1', 'jedna': '1', 'jedno': '1',
+        'dwa': '2', 'dwie': '2', 'trzy': '3', 'cztery': '4',
+        'pięć': '5', 'sześć': '6', 'siedem': '7', 'osiem': '8', 
+        'dziewięć': '9', 'dziesięć': '10',
+        
+        # Liczby 11-20
+        'jedenaście': '11', 'dwanaście': '12', 'trzynaście': '13',
+        'czternaście': '14', 'piętnaście': '15', 'szesnaście': '16',
+        'siedemnaście': '17', 'osiemnaście': '18', 'dziewiętnaście': '19',
+        'dwadzieścia': '20', 'trzydzieści': '30', 'czterdzieści': '40',
+        'pięćdziesiąt': '50',
+        
+        # Operatory
+        'plus': '+', 'dodać': '+', 'minus': '-', 'odjąć': '-',
+        'razy': '×', 'pomnożyć': '×', 'podzielić': '÷', 'przez': '÷',
+        
+        # Inne
+        'przecinek': '.', 'kropka': '.', 'równa się': '=', 'równe': '=',
+        'x': 'x', 'iks': 'x', 'igrek': 'y'
+    }
+    
+    # Zamień pojedyncze słowa tylko jeśli nie są częścią ułamka
+    for word, number in word_to_number.items():
+        # Sprawdź czy słowo nie jest już częścią zamienionych ułamków
+        if word in result and '/' not in result:
+            result = result.replace(word, number)
+            print(f"[DEBUG] Zamieniono '{word}' na '{number}'")
+    
+    # Usuń zbędne spacje
+    result = ' '.join(result.split())
+    
+    print(f"[DEBUG] Wynik konwersji: '{result}'")
+    
+    return result
 
 
 class DialogState(Enum):
@@ -64,6 +134,11 @@ class DialogManager:
             Odpowiedź systemu
         """
         logger.info(f"Stan: {self.current_state}, Input: {user_input}")
+        
+        # Konwertuj mowę na format matematyczny jeśli w stanie QUIZ
+        if self.current_state == DialogState.QUIZ:
+            math_format = convert_speech_to_math(user_input)
+            logger.info(f"Konwersja: '{user_input}' -> '{math_format}'")
         
         # Wykryj intencję zakończenia
         if self._is_farewell_intent(user_input):
@@ -133,7 +208,7 @@ class DialogManager:
                 self.current_topic = topic
                 # Od razu przechodzimy do zadania
                 problem = self._generate_problem()
-                self.context['current_problem'] = problem  # Zapisz zadanie
+                self.context['current_problem'] = problem
                 self.current_state = DialogState.QUIZ
                 return f"Dobrze, zajmiemy się tematem: {topic}. Oto zadanie:\n\n{problem}"
                 
@@ -147,10 +222,9 @@ class DialogManager:
         else:
             # Bezpośrednio generuj zadanie
             problem = self._generate_problem()
-            self.current_state = DialogState.QUIZ  # Przejdź do stanu quiz
+            self.current_state = DialogState.QUIZ
             return f"Teraz przejdźmy do zadania praktycznego. {problem}"
-        
-        
+            
     def _handle_explanation(self, user_input: str) -> str:
         """Obsługuje wyjaśnianie teorii"""
         return "Teraz przejdźmy do zadania praktycznego. Spróbuj rozwiązać to zadanie."
@@ -158,6 +232,14 @@ class DialogManager:
     def _handle_quiz(self, user_input: str) -> str:
         """Obsługuje quiz"""
         user_input_lower = user_input.lower().strip()
+        
+        # Debug
+        print(f"\n[DEBUG QUIZ] Otrzymano odpowiedź: '{user_input}'")
+        print(f"[DEBUG QUIZ] Po lower/strip: '{user_input_lower}'")
+        
+        # Konwertuj wypowiedziane słowa na format matematyczny
+        math_input = convert_speech_to_math(user_input_lower)
+        print(f"[DEBUG QUIZ] Po konwersji: '{math_input}'")
         
         # Najpierw sprawdź czy user chce kontynuować lub zakończyć
         if user_input_lower in ['tak', 'nie', 'dalej', 'stop', 'koniec']:
@@ -169,137 +251,63 @@ class DialogManager:
                 self.current_state = DialogState.TOPIC_SELECTION
                 return "Ok! Z czego jeszcze mogę ci pomóc? (równania, funkcje, geometria, ułamki, procenty)"
         
-        # Mapa zadań do poprawnych odpowiedzi i wskazówek
-        problem_data = {
-            # Równania
-            "2x + 5 = 13": {
-                "answers": ["4", "x=4", "x = 4"],
-                "hint": "Przenieś 5 na drugą stronę: 2x = 13 - 5 = 8. Teraz podziel przez 2."
-            },
-            "3x - 7 = 8": {
-                "answers": ["5", "x=5", "x = 5"],
-                "hint": "Przenieś -7 na drugą stronę: 3x = 8 + 7 = 15. Teraz podziel przez 3."
-            },
-            "x/2 + 3 = 5": {
-                "answers": ["4", "x=4", "x = 4"],
-                "hint": "Najpierw odejmij 3: x/2 = 2. Pomnóż obie strony przez 2."
-            },
-            "4x = 16": {
-                "answers": ["4", "x=4", "x = 4"],
-                "hint": "Podziel obie strony przez 4: x = 16/4."
-            },
-            
-            # Funkcje
-            "f(x) = 2x + 3, oblicz f(5)": {
-                "answers": ["13", "f(5)=13", "f(5) = 13"],
-                "hint": "Podstaw 5 w miejsce x: f(5) = 2×5 + 3 = 10 + 3"
-            },
-            "f(x) = x² - 1, oblicz f(3)": {
-                "answers": ["8", "f(3)=8", "f(3) = 8"],
-                "hint": "Podstaw 3 w miejsce x: f(3) = 3² - 1 = 9 - 1"
-            },
-            "f(x) = 3x - 2, oblicz f(4)": {
-                "answers": ["10", "f(4)=10", "f(4) = 10"],
-                "hint": "Podstaw 4 w miejsce x: f(4) = 3×4 - 2 = 12 - 2"
-            },
-            "f(x) = x + 7, oblicz f(0)": {
-                "answers": ["7", "f(0)=7", "f(0) = 7"],
-                "hint": "Podstaw 0 w miejsce x: f(0) = 0 + 7"
-            },
-            
-            # Geometria
-            "podstawie 6 cm i wysokości 4 cm": {
-                "answers": ["12", "12 cm", "12cm", "12 cm²", "12cm²", "12 cm^2"],
-                "hint": "Pole trójkąta = (podstawa × wysokość) / 2 = (6 × 4) / 2"
-            },
-            "kwadratu o boku 5 cm": {
-                "answers": ["25", "25cm²", "25 cm²", "25 cm^2"],
-                "hint": "Pole kwadratu = bok × bok = 5 × 5"
-            },
-            "prostokąta o bokach 3 cm i 7 cm": {
-                "answers": ["20", "20cm", "20 cm"],
-                "hint": "Obwód prostokąta = 2 × (a + b) = 2 × (3 + 7)"
-            },
-            "koła o promieniu 2 cm": {
-                "answers": ["12.56", "12,56", "4π", "4pi"],
-                "hint": "Pole koła = π × r² = 3.14 × 2² = 3.14 × 4"
-            },
-            
-            # Ułamki
-            "1/2 + 1/3": {
-                "answers": ["5/6", "5:6", "10/12", "0.83", "0,83"],
-                "hint": "Wspólny mianownik to 6. 1/2 = 3/6, 1/3 = 2/6. Więc 3/6 + 2/6 = 5/6"
-            },
-            "3/4 - 1/2": {
-                "answers": ["1/4", "0.25", "0,25", "2/8"],
-                "hint": "Wspólny mianownik to 4. 3/4 - 1/2 = 3/4 - 2/4 = 1/4"
-            },
-            "2/3 × 3/4": {
-                "answers": ["1/2", "0.5", "0,5", "6/12"],
-                "hint": "Mnożenie ułamków: (2×3)/(3×4) = 6/12 = 1/2"
-            },
-            "1/2 ÷ 1/4": {
-                "answers": ["2", "2/1", "8/4"],
-                "hint": "Dzielenie to mnożenie przez odwrotność: 1/2 × 4/1 = 4/2 = 2"
-            },
-            "1/2 - 1/4": {
-                "answers": ["1/4", "0.25", "0,25", "2/8"],
-                "hint": "Wspólny mianownik to 4. 1/2 = 2/4, więc 2/4 - 1/4 = 1/4"
-            },
-            
-            # Procenty
-            "20% z liczby 150": {
-                "answers": ["30"],
-                "hint": "20% = 0.2. Więc 0.2 × 150 = 30"
-            },
-            "50% z liczby 80": {
-                "answers": ["40"],
-                "hint": "50% to połowa. Połowa z 80 to 40"
-            },
-            "25% z liczby 200": {
-                "answers": ["50"],
-                "hint": "25% to 1/4. Więc 200 ÷ 4 = 50"
-            },
-            "10% z liczby 450": {
-                "answers": ["45"],
-                "hint": "10% = 0.1. Więc 0.1 × 450 = 45"
-            }
-        }
-        
-        # Znajdź które zadanie było zadane
+        # Pobierz aktualne zadanie
         current_problem = self.context.get('current_problem', '')
-        is_correct = False
-        specific_hint = ""
+        print(f"[DEBUG QUIZ] Aktualne zadanie: '{current_problem}'")
         
-        # Sprawdź odpowiedź na podstawie aktualnego zadania
-        for problem_key, data in problem_data.items():
-            if problem_key in current_problem:
-                is_correct = any(ans in user_input_lower.replace(',', '.') for ans in data["answers"])
-                specific_hint = data["hint"]
-                break
+        # Sprawdź odpowiedź dla konkretnych zadań
+        is_correct = False
+        hint = ""
+        
+        # Ułamki
+        if '1/2 + 1/3' in current_problem:
+            correct_answers = ['5/6', '5:6', '10/12', '0.83', '0,83']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "Wspólny mianownik to 6. 1/2 = 3/6, 1/3 = 2/6. Więc 3/6 + 2/6 = 5/6"
+            
+        elif '3/4 - 1/2' in current_problem:
+            correct_answers = ['1/4', '0.25', '0,25', '2/8']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "Wspólny mianownik to 4. 3/4 - 1/2 = 3/4 - 2/4 = 1/4"
+            
+        elif '1/2 - 1/4' in current_problem:
+            correct_answers = ['1/4', '0.25', '0,25', '2/8']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "Wspólny mianownik to 4. 1/2 = 2/4, więc 2/4 - 1/4 = 1/4"
+            
+        elif '2/3 × 3/4' in current_problem or '2/3 * 3/4' in current_problem:
+            correct_answers = ['1/2', '0.5', '0,5', '6/12']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "Mnożenie ułamków: (2×3)/(3×4) = 6/12 = 1/2"
+            
+        elif '1/2 ÷ 1/4' in current_problem or '1/2 / 1/4' in current_problem:
+            correct_answers = ['2', '2/1', '8/4']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "Dzielenie to mnożenie przez odwrotność: 1/2 × 4/1 = 4/2 = 2"
+            
+        # Równania
+        elif '2x + 5 = 13' in current_problem:
+            correct_answers = ['4', 'x=4', 'x = 4', 'cztery']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "Przenieś 5 na drugą stronę: 2x = 13 - 5 = 8. Teraz podziel przez 2."
+            
+        # Procenty
+        elif '20% z liczby 150' in current_problem:
+            correct_answers = ['30', 'trzydzieści']
+            is_correct = any(ans in math_input or ans in user_input_lower for ans in correct_answers)
+            hint = "20% = 0.2. Więc 0.2 × 150 = 30"
+        
+        print(f"[DEBUG QUIZ] Czy poprawne: {is_correct}")
         
         if is_correct:
             return "Świetnie! Dobra odpowiedź! 🎉\n\nCzy chcesz kolejne zadanie? (tak/nie)"
         else:
-            # Użyj specyficznej wskazówki jeśli znaleziona
-            if specific_hint:
-                return f"Hmm, spróbuj jeszcze raz. Wskazówka: {specific_hint}"
-            else:
-                # Domyślna wskazówka dla tematu
-                general_hints = {
-                    'równania': "Przenieś liczby na drugą stronę równania i rozwiąż krok po kroku.",
-                    'funkcje': "Podstaw podaną wartość w miejsce x i oblicz.",
-                    'geometria': "Użyj odpowiedniego wzoru dla danej figury.",
-                    'ułamki': "Pamiętaj o wspólnym mianowniku przy dodawaniu/odejmowaniu.",
-                    'procenty': "Zamień procent na ułamek dziesiętny i pomnóż."
-                }
-                hint = general_hints.get(self.current_topic, "Sprawdź obliczenia jeszcze raz.")
-                return f"Hmm, spróbuj jeszcze raz. Wskazówka: {hint}"
-
-
+            return f"Hmm, spróbuj jeszcze raz. Wskazówka: {hint}"
+        
     def _handle_farewell(self, user_input: str) -> str:
         """Obsługuje pożegnanie"""
         name = self.context.get('user_name', '')
+        self.current_state = DialogState.GREETING
         return f"Do zobaczenia{', ' + name if name else ''}! Powodzenia w nauce matematyki!"
         
     def _is_farewell_intent(self, user_input: str) -> bool:
@@ -320,8 +328,6 @@ class DialogManager:
         
     def _generate_problem(self) -> str:
         """Generuje zadanie matematyczne"""
-        import random
-        
         problems = {
             'równania': [
                 "Rozwiąż równanie: 2x + 5 = 13. Ile wynosi x?",
@@ -344,8 +350,8 @@ class DialogManager:
             'ułamki': [
                 "Oblicz: 1/2 + 1/3",
                 "Oblicz: 3/4 - 1/2",
-                "Oblicz: 2/3 × 3/4", 
                 "Oblicz: 1/2 - 1/4",
+                "Oblicz: 2/3 × 3/4",
                 "Oblicz: 1/2 ÷ 1/4"
             ],
             'procenty': [
