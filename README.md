@@ -2,14 +2,14 @@
 
 System dialogowy z rozpoznawaniem mowy realizujÄ…cy funkcjÄ™ korepetytora matematycznego.
 
-## í¾“ Informacje o projekcie
+## ï¿½ï¿½ï¿½ Informacje o projekcie
 
 - **Przedmiot**: Standardy w projektowaniu systemÃ³w dialogowych
 - **Uczelnia**: Wojskowa Akademia Techniczna
 - **Autor**: [Twoje ImiÄ™ i Nazwisko]
 - **Rok akademicki**: 2024/2025
 
-## íº€ FunkcjonalnoÅ›ci
+## ï¿½ï¿½ï¿½ FunkcjonalnoÅ›ci
 
 - Dialog z inicjatywÄ… przemiennÄ…
 - Rozpoznawanie mowy (VOSK)
@@ -17,13 +17,13 @@ System dialogowy z rozpoznawaniem mowy realizujÄ…cy funkcjÄ™ korepetytora matema
 - Graficzny interfejs uÅ¼ytkownika
 - Wsparcie dla rÃ³Å¼nych poziomÃ³w nauczania
 
-## í³‹ Wymagania
+## ï¿½ï¿½ï¿½ Wymagania
 
 - Python 3.8+
 - Mikrofon
 - System operacyjny: Windows/Linux/macOS
 
-## í» ï¸ Instalacja
+## ï¿½ï¿½ï¿½ï¸ Instalacja
 
 ```bash
 # Sklonuj repozytorium
@@ -40,4 +40,5 @@ venv\Scripts\activate
 source venv/bin/activate
 
 # Zainstaluj zaleÅ¼noÅ›ci
+python -m pip install --upgrade pip
 pip install -r requirements.txt
