@@ -12,6 +12,7 @@ from speech.synthesis import get_tts
 from dialog.manager import DialogManager
 from speech.recognition import SpeechRecognizer, test_microphone
 
+
 class MathTutorApp:
     def __init__(self, root):
         self.root = root
@@ -21,6 +22,9 @@ class MathTutorApp:
         # Zmienne stanu
         self.is_listening = False
         self.current_state = "idle"  # idle, listening, processing, speaking
+        
+        # Zmienne dla menu
+        self.adaptive_mode = tk.BooleanVar(value=False)
         
         # Inicjalizacja TTS i Dialog Manager
         self.tts = get_tts()
@@ -41,6 +45,9 @@ class MathTutorApp:
         
     def setup_ui(self):
         """Konfiguracja interfejsu użytkownika"""
+        # Menu
+        self.setup_menu()
+        
         # Główny kontener
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
@@ -146,28 +153,73 @@ class MathTutorApp:
         
         # Style
         self.setup_styles()
-
+        
+    def setup_menu(self):
+        """Konfiguracja menu aplikacji"""
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
         # Menu Plik
-        # file_menu = tk.Menu(menubar, tearoff=0)
-        # menubar.add_cascade(label="Plik", menu=file_menu)
-        # file_menu.add_command(label="Eksportuj raport PDF", command=self.export_report)
-        # file_menu.add_separator()
-        # file_menu.add_command(label="Zakończ", command=self.root.quit)
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Plik", menu=file_menu)
+        file_menu.add_command(label="Eksportuj raport PDF", command=self.export_report)
+        file_menu.add_separator()
+        file_menu.add_command(label="Zakończ", command=self.root.quit)
 
-        # # Menu Widok
-        # view_menu = tk.Menu(menubar, tearoff=0)
-        # menubar.add_cascade(label="Widok", menu=view_menu)
-        # view_menu.add_command(label="Pokaż statystyki", command=self.show_statistics)
-        # view_menu.add_command(label="Historia sesji", command=self.show_history)
+        # Menu Widok
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Widok", menu=view_menu)
+        view_menu.add_command(label="Pokaż statystyki", command=self.show_statistics)
+        view_menu.add_command(label="Historia sesji", command=self.show_history)
 
-        # # Menu Ustawienia
-        # settings_menu = tk.Menu(menubar, tearoff=0)
-        # menubar.add_cascade(label="Ustawienia", menu=settings_menu)
-        # settings_menu.add_checkbutton(label="Tryb adaptacyjny", variable=self.adaptive_mode)
-        # settings_menu.add_command(label="Zmień głos", command=self.change_voice)
+        # Menu Ustawienia
+        settings_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Ustawienia", menu=settings_menu)
+        settings_menu.add_checkbutton(
+            label="Tryb adaptacyjny", 
+            variable=self.adaptive_mode,
+            command=self.toggle_adaptive_mode
+        )
+        settings_menu.add_command(label="Zmień głos", command=self.change_voice)
+
+    def toggle_adaptive_mode(self):
+        """Przełącza tryb adaptacyjny"""
+        if self.adaptive_mode.get():
+            self.add_message("System", "✅ Tryb adaptacyjny włączony - zadania będą dostosowywane do Twoich wyników!")
+        else:
+            self.add_message("System", "❌ Tryb adaptacyjny wyłączony")
+
+    def export_report(self):
+        """Eksportuje raport do PDF"""
+        try:
+            # Sprawdź czy mamy statystyki
+            if hasattr(self, 'statistics') and self.statistics:
+                from utils.report_generator import ReportGenerator
+                
+                generator = ReportGenerator(
+                    self.dialog_manager.context.get('user_name', 'Uczeń'),
+                    self.statistics.all_stats
+                )
+                filename = generator.generate_report()
+                
+                self.add_message("System", f"✅ Raport został wygenerowany: {filename}")
+            else:
+                self.add_message("System", "⚠️ Brak danych do wygenerowania raportu. Rozwiąż najpierw kilka zadań!")
+                
+        except Exception as e:
+            self.add_message("System", f"❌ Błąd podczas generowania raportu: {str(e)}")
+
+    def show_statistics(self):
+        """Pokazuje okno statystyk"""
+        self.add_message("System", "📊 Funkcja statystyk będzie dostępna w następnej wersji!")
+        
+    def show_history(self):
+        """Pokazuje historię sesji"""
+        self.add_message("System", "📜 Funkcja historii będzie dostępna w następnej wersji!")
+        
+    def change_voice(self):
+        """Zmienia głos TTS"""
+        self.add_message("System", "🔊 Funkcja zmiany głosu będzie dostępna w następnej wersji!")
         
     def setup_styles(self):
         """Konfiguracja stylów dla przycisków"""
