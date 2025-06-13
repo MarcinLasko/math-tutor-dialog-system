@@ -244,7 +244,9 @@ class MathTutorApp:
             response = self.dialog_manager.process_user_input(text)
             
     def on_speech_partial(self, text):
-        """Callback dla częściowych wyników (opcjonalny)"""
-        # Możemy pokazać w statusie co aktualnie słyszymy
+        """Callback dla częściowych wyników"""
         if text:
             self.update_status(f"Słyszę: {text}...")
+            # Animuj wskaźnik
+            self.activity_label.config(text="🎤", foreground="green")
+            self.root.after(100, lambda: self.activity_label.config(text="🔴", foreground="red"))
