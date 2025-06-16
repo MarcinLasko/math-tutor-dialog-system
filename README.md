@@ -2,14 +2,14 @@
 
 System dialogowy z rozpoznawaniem mowy realizujący funkcję korepetytora matematycznego.
 
-## ��� Informacje o projekcie
+## Informacje o projekcie
 
 - **Przedmiot**: Standardy w projektowaniu systemów dialogowych
 - **Uczelnia**: Wojskowa Akademia Techniczna
-- **Autor**: [Twoje Imię i Nazwisko]
+- **Autor**: Marcin Laskowski
 - **Rok akademicki**: 2024/2025
 
-## ��� Funkcjonalności
+## Funkcjonalności
 
 - Dialog z inicjatywą przemienną
 - Rozpoznawanie mowy (VOSK)
@@ -17,13 +17,13 @@ System dialogowy z rozpoznawaniem mowy realizujący funkcję korepetytora matema
 - Graficzny interfejs użytkownika
 - Wsparcie dla różnych poziomów nauczania
 
-## ��� Wymagania
+## Wymagania
 
 - Python 3.8+
 - Mikrofon
 - System operacyjny: Windows/Linux/macOS
 
-## ���️ Instalacja
+## Instalacja
 
 ```bash
 # Sklonuj repozytorium
