@@ -42,3 +42,6 @@ source venv/bin/activate
 # Zainstaluj zależności
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+
+#uruchomienie programu
+python main.py
