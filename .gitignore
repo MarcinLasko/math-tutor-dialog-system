@@ -41,7 +41,7 @@ env/
 .spyproject
 
 # Project specific
-assets/models/*
+
 !assets/models/.gitkeep
 *.log
 logs/
